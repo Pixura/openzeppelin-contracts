@@ -256,13 +256,22 @@ contract ERC721 is Context, ERC165, IERC721 {
      * @param tokenId uint256 ID of the token to be minted
      */
     function _mint(address to, uint256 tokenId) internal {
+        _mintWithNoEvent(to, tokenId);
+
+        emit Transfer(address(0), to, tokenId);
+    }
+    /**
+     * @dev Internal function to mint a new token without emitting the event.
+     * Reverts if the given token ID already exists.
+     * @param to The address that will own the minted token
+     * @param tokenId uint256 ID of the token to be minted
+     */
+    function _mintWithNoEvent(address to, uint256 tokenId) internal {
         require(to != address(0), "ERC721: mint to the zero address");
         require(!_exists(tokenId), "ERC721: token already minted");
 
         _tokenOwner[tokenId] = to;
         _ownedTokensCount[to].increment();
-
-        emit Transfer(address(0), to, tokenId);
     }
 
     /**

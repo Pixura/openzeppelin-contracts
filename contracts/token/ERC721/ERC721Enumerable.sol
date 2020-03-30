@@ -99,6 +99,20 @@ contract ERC721Enumerable is Context, ERC165, ERC721, IERC721Enumerable {
     }
 
     /**
+     * @dev Internal function to mint a new token without emitting a transfer event.
+     * Reverts if the given token ID already exists.
+     * @param to address the beneficiary that will own the minted token
+     * @param tokenId uint256 ID of the token to be minted
+     */
+    function _mintWithNoEvent(address to, uint256 tokenId) internal {
+        super._mintWithNoEvent(to, tokenId);
+
+        _addTokenToOwnerEnumeration(to, tokenId);
+
+        _addTokenToAllTokensEnumeration(tokenId);
+    }
+
+    /**
      * @dev Internal function to burn a specific token.
      * Reverts if the token does not exist.
      * Deprecated, use {ERC721-_burn} instead.
