@@ -84,6 +84,23 @@ contract ERC721Enumerable is Context, ERC165, ERC721, IERC721Enumerable {
         _addTokenToOwnerEnumeration(to, tokenId);
     }
 
+
+    /**
+     * @dev Internal function to transfer ownership of a given token ID to another address.
+     * Does not emit a transfer event, only to be used for specific use cases where a
+     * transfer event is not desired.
+     * @param from current owner of the token
+     * @param to address to receive the ownership of the given token ID
+     * @param tokenId uint256 ID of the token to be transferred
+     */
+    function _transferFromNoEvent(address from, address to, uint256 tokenId) internal {
+        super._transferFromNoEvent(from, to, tokenId);
+
+        _removeTokenFromOwnerEnumeration(from, tokenId);
+
+        _addTokenToOwnerEnumeration(to, tokenId);
+    }
+
     /**
      * @dev Internal function to mint a new token.
      * Reverts if the given token ID already exists.

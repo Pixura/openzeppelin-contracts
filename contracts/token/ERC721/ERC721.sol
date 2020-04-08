@@ -394,7 +394,20 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable 
      * Emits a {Transfer} event.
      */
     function _transfer(address from, address to, uint256 tokenId) internal virtual {
-        require(ownerOf(tokenId) == from, "ERC721: transfer of token that is not own");
+        _transferFromNoEvent(from, to, tokenId);
+        emit Transfer(from, to, tokenId);
+    }
+
+    /**
+     * @dev Internal function to transfer ownership of a given token ID to another address.
+     * Does not emit a transfer event, only to be used for specific use cases where a
+     * transfer event is not desired.
+     * @param from current owner of the token
+     * @param to address to receive the ownership of the given token ID
+     * @param tokenId uint256 ID of the token to be transferred
+     */
+    function _transferFromNoEvent(address from, address to, uint256 tokenId) internal {
+        require(ERC721.ownerOf(tokenId) == from, "ERC721: transfer of token that is not own");
         require(to != address(0), "ERC721: transfer to the zero address");
 
         _beforeTokenTransfer(from, to, tokenId);
@@ -406,8 +419,6 @@ contract ERC721 is Context, ERC165, IERC721, IERC721Metadata, IERC721Enumerable 
         _holderTokens[to].add(tokenId);
 
         _tokenOwners.set(tokenId, to);
-
-        emit Transfer(from, to, tokenId);
     }
 
     /**
