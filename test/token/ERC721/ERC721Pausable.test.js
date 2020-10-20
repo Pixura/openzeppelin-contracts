@@ -19,7 +19,8 @@ describe('ERC721Pausable', function () {
 
   context('when token is paused', function () {
     const firstTokenId = new BN(1);
-    const mintedTokens = new BN(1);
+    const secondTokenId = new BN(1337);
+
     const mockData = '0x42';
 
     beforeEach(async function () {
@@ -30,22 +31,36 @@ describe('ERC721Pausable', function () {
     it('reverts when trying to transferFrom', async function () {
       await expectRevert(
         this.token.transferFrom(owner, receiver, firstTokenId, { from: owner }),
-        'ERC721Pausable: token transfer while paused'
+        'ERC721Pausable: token transfer while paused',
       );
     });
 
     it('reverts when trying to safeTransferFrom', async function () {
       await expectRevert(
         this.token.safeTransferFrom(owner, receiver, firstTokenId, { from: owner }),
-        'ERC721Pausable: token transfer while paused'
+        'ERC721Pausable: token transfer while paused',
       );
     });
 
     it('reverts when trying to safeTransferFrom with data', async function () {
       await expectRevert(
         this.token.methods['safeTransferFrom(address,address,uint256,bytes)'](
-          owner, receiver, firstTokenId, mockData, { from: owner }
-        ), 'ERC721Pausable: token transfer while paused'
+          owner, receiver, firstTokenId, mockData, { from: owner },
+        ), 'ERC721Pausable: token transfer while paused',
+      );
+    });
+
+    it('reverts when trying to mint', async function () {
+      await expectRevert(
+        this.token.mint(receiver, secondTokenId),
+        'ERC721Pausable: token transfer while paused',
+      );
+    });
+
+    it('reverts when trying to burn', async function () {
+      await expectRevert(
+        this.token.burn(firstTokenId),
+        'ERC721Pausable: token transfer while paused',
       );
     });
 
@@ -59,7 +74,7 @@ describe('ERC721Pausable', function () {
     describe('balanceOf', function () {
       it('returns the amount of tokens owned by the given address', async function () {
         const balance = await this.token.balanceOf(owner);
-        expect(balance).to.be.bignumber.equal(mintedTokens);
+        expect(balance).to.be.bignumber.equal('1');
       });
     });
 
@@ -71,7 +86,7 @@ describe('ERC721Pausable', function () {
     });
 
     describe('exists', function () {
-      it('should return token existence', async function () {
+      it('returns token existence', async function () {
         expect(await this.token.exists(firstTokenId)).to.equal(true);
       });
     });

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.0;
 
 import "./IRelayRecipient.sol";
@@ -113,13 +115,13 @@ abstract contract GSNRecipient is IRelayRecipient, Context {
     /**
      * @dev See `IRelayRecipient.preRelayedCall`.
      *
-     * This function should not be overriden directly, use `_preRelayedCall` instead.
+     * This function should not be overridden directly, use `_preRelayedCall` instead.
      *
      * * Requirements:
      *
      * - the caller must be the `RelayHub` contract.
      */
-    function preRelayedCall(bytes calldata context) external virtual override returns (bytes32) {
+    function preRelayedCall(bytes memory context) public virtual override returns (bytes32) {
         require(msg.sender == getHubAddr(), "GSNRecipient: caller is not RelayHub");
         return _preRelayedCall(context);
     }
@@ -136,13 +138,13 @@ abstract contract GSNRecipient is IRelayRecipient, Context {
     /**
      * @dev See `IRelayRecipient.postRelayedCall`.
      *
-     * This function should not be overriden directly, use `_postRelayedCall` instead.
+     * This function should not be overridden directly, use `_postRelayedCall` instead.
      *
      * * Requirements:
      *
      * - the caller must be the `RelayHub` contract.
      */
-    function postRelayedCall(bytes calldata context, bool success, uint256 actualCharge, bytes32 preRetVal) external virtual override {
+    function postRelayedCall(bytes memory context, bool success, uint256 actualCharge, bytes32 preRetVal) public virtual override {
         require(msg.sender == getHubAddr(), "GSNRecipient: caller is not RelayHub");
         _postRelayedCall(context, success, actualCharge, preRetVal);
     }

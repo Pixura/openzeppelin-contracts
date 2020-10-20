@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.0;
 
 import "../../GSN/Context.sol";
@@ -8,7 +10,7 @@ import "./ERC20.sol";
  * tokens and those that they have an allowance for, in a way that can be
  * recognized off-chain (via event analysis).
  */
-contract ERC20Burnable is Context, ERC20 {
+abstract contract ERC20Burnable is Context, ERC20 {
     /**
      * @dev Destroys `amount` tokens from the caller.
      *
@@ -26,7 +28,7 @@ contract ERC20Burnable is Context, ERC20 {
      *
      * Requirements:
      *
-     * - the caller must have allowance for `accounts`'s tokens of at least
+     * - the caller must have allowance for ``accounts``'s tokens of at least
      * `amount`.
      */
     function burnFrom(address account, uint256 amount) public virtual {

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.0;
 
 import "../token/ERC721/ERC721.sol";
@@ -11,10 +13,6 @@ contract ERC721Mock is ERC721 {
 
     function exists(uint256 tokenId) public view returns (bool) {
         return _exists(tokenId);
-    }
-
-    function tokensOfOwner(address owner) public view returns (uint256[] memory) {
-        return _tokensOfOwner(owner);
     }
 
     function setTokenURI(uint256 tokenId, string memory uri) public {

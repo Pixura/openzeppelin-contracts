@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.0;
 
 import "../../math/SafeMath.sol";
@@ -6,18 +8,30 @@ import "../../utils/Counters.sol";
 import "./ERC20.sol";
 
 /**
- * @dev ERC20 token with snapshots.
+ * @dev This contract extends an ERC20 token with a snapshot mechanism. When a snapshot is created, the balances and
+ * total supply at the time are recorded for later access.
  *
- * When a snapshot is made, the balances and total supply at the time of the snapshot are recorded for later
- * access.
+ * This can be used to safely create mechanisms based on token balances such as trustless dividends or weighted voting.
+ * In naive implementations it's possible to perform a "double spend" attack by reusing the same balance from different
+ * accounts. By using snapshots to calculate dividends or voting power, those attacks no longer apply. It can also be
+ * used to create an efficient ERC20 forking mechanism.
  *
- * To make a snapshot, call the {snapshot} function, which will emit the {Snapshot} event and return a snapshot id.
- * To get the total supply from a snapshot, call the function {totalSupplyAt} with the snapshot id.
- * To get the balance of an account from a snapshot, call the {balanceOfAt} function with the snapshot id and the
- * account address.
- * @author Validity Labs AG <info@validitylabs.org>
+ * Snapshots are created by the internal {_snapshot} function, which will emit the {Snapshot} event and return a
+ * snapshot id. To get the total supply at the time of a snapshot, call the function {totalSupplyAt} with the snapshot
+ * id. To get the balance of an account at the time of a snapshot, call the {balanceOfAt} function with the snapshot id
+ * and the account address.
+ *
+ * ==== Gas Costs
+ *
+ * Snapshots are efficient. Snapshot creation is _O(1)_. Retrieval of balances or total supply from a snapshot is _O(log
+ * n)_ in the number of snapshots that have been created, although _n_ for a specific account will generally be much
+ * smaller since identical balances in subsequent snapshots are stored as a single entry.
+ *
+ * There is a constant overhead for normal ERC20 transfers due to the additional snapshot bookkeeping. This overhead is
+ * only significant for the first transfer that immediately follows a snapshot for a particular account. Subsequent
+ * transfers will have normal cost until the next snapshot, and so on.
  */
-contract ERC20Snapshot is ERC20 {
+abstract contract ERC20Snapshot is ERC20 {
     // Inspired by Jordi Baylina's MiniMeToken to record historical balances:
     // https://github.com/Giveth/minimd/blob/ea04d950eea153a04c51fa510b068b9dded390cb/contracts/MiniMeToken.sol
 
@@ -38,12 +52,31 @@ contract ERC20Snapshot is ERC20 {
     // Snapshot ids increase monotonically, with the first value being 1. An id of 0 is invalid.
     Counters.Counter private _currentSnapshotId;
 
+    /**
+     * @dev Emitted by {_snapshot} when a snapshot identified by `id` is created.
+     */
     event Snapshot(uint256 id);
 
     /**
-     * @dev Creates a new snapshot id. Balances are only stored in snapshots on demand: unless a snapshot was taken, a
-     * balance change will not be recorded. This means the extra added cost of storing snapshotted balances is only paid
-     * when required, but is also flexible enough that it allows for e.g. daily snapshots.
+     * @dev Creates a new snapshot and returns its snapshot id.
+     *
+     * Emits a {Snapshot} event that contains the same id.
+     *
+     * {_snapshot} is `internal` and you have to decide how to expose it externally. Its usage may be restricted to a
+     * set of accounts, for example using {AccessControl}, or it may be open to the public.
+     *
+     * [WARNING]
+     * ====
+     * While an open way of calling {_snapshot} is required for certain trust minimization mechanisms such as forking,
+     * you must consider that it can potentially be used by attackers in two ways.
+     *
+     * First, it can be used to increase the cost of retrieval of values from snapshots, although it will grow
+     * logarithmically thus rendering this attack ineffective in the long term. Second, it can be used to target
+     * specific accounts and increase the cost of ERC20 transfers for them, in the ways specified in the Gas Costs
+     * section above.
+     *
+     * We haven't measured the actual numbers; if this is something you're interested in please reach out to us.
+     * ====
      */
     function _snapshot() internal virtual returns (uint256) {
         _currentSnapshotId.increment();
@@ -53,40 +86,43 @@ contract ERC20Snapshot is ERC20 {
         return currentId;
     }
 
+    /**
+     * @dev Retrieves the balance of `account` at the time `snapshotId` was created.
+     */
     function balanceOfAt(address account, uint256 snapshotId) public view returns (uint256) {
         (bool snapshotted, uint256 value) = _valueAt(snapshotId, _accountBalanceSnapshots[account]);
 
         return snapshotted ? value : balanceOf(account);
     }
 
+    /**
+     * @dev Retrieves the total supply at the time `snapshotId` was created.
+     */
     function totalSupplyAt(uint256 snapshotId) public view returns(uint256) {
         (bool snapshotted, uint256 value) = _valueAt(snapshotId, _totalSupplySnapshots);
 
         return snapshotted ? value : totalSupply();
     }
 
-    // _transfer, _mint and _burn are the only functions where the balances are modified, so it is there that the
-    // snapshots are updated. Note that the update happens _before_ the balance change, with the pre-modified value.
-    // The same is true for the total supply and _mint and _burn.
-    function _transfer(address from, address to, uint256 value) internal virtual override {
+
+    // Update balance and/or total supply snapshots before the values are modified. This is implemented
+    // in the _beforeTokenTransfer hook, which is executed for _mint, _burn, and _transfer operations.
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+      super._beforeTokenTransfer(from, to, amount);
+
+      if (from == address(0)) {
+        // mint
+        _updateAccountSnapshot(to);
+        _updateTotalSupplySnapshot();
+      } else if (to == address(0)) {
+        // burn
+        _updateAccountSnapshot(from);
+        _updateTotalSupplySnapshot();
+      } else {
+        // transfer
         _updateAccountSnapshot(from);
         _updateAccountSnapshot(to);
-
-        super._transfer(from, to, value);
-    }
-
-    function _mint(address account, uint256 value) internal virtual override {
-        _updateAccountSnapshot(account);
-        _updateTotalSupplySnapshot();
-
-        super._mint(account, value);
-    }
-
-    function _burn(address account, uint256 value) internal virtual override {
-        _updateAccountSnapshot(account);
-        _updateTotalSupplySnapshot();
-
-        super._burn(account, value);
+      }
     }
 
     function _valueAt(uint256 snapshotId, Snapshots storage snapshots)

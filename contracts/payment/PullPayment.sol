@@ -1,4 +1,6 @@
-pragma solidity ^0.6.0;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.6.2;
 
 import "./escrow/Escrow.sol";
 
@@ -62,6 +64,6 @@ contract PullPayment {
      * @param amount The amount to transfer.
      */
     function _asyncTransfer(address dest, uint256 amount) internal virtual {
-        _escrow.deposit.value(amount)(dest);
+        _escrow.deposit{ value: amount }(dest);
     }
 }

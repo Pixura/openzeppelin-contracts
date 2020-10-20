@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.0;
 
 /**
@@ -96,7 +98,7 @@ interface IERC777 {
     function authorizeOperator(address operator) external;
 
     /**
-     * @dev Make an account an operator of the caller.
+     * @dev Revoke an account's operator status for the caller.
      *
      * See {isOperatorFor} and {defaultOperators}.
      *
